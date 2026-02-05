@@ -1,1 +1,7 @@
 node_modules/
+
+# Personal layout data - don't leak to public repo
+*.json
+!package.json
+!package-lock.json
+layouts/
