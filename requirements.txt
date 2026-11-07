@@ -1,0 +1,2 @@
+# Device inspection dependency; validated during environment setup.
+pymobiledevice3==11.50.0

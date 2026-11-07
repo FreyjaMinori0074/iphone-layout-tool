@@ -5,3 +5,10 @@ node_modules/
 !package.json
 !package-lock.json
 layouts/
+
+# Local Python environment and macOS metadata
+.venv/
+__pycache__/
+*.py[cod]
+._*
+.env.local

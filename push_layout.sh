@@ -46,9 +46,45 @@ if [ ! -f "$LAYOUT_FILE" ]; then
     exit 1
 fi
 
-# Verify it's valid JSON
-if ! python3 -c "import json; json.load(open('$LAYOUT_FILE'))" 2>/dev/null; then
-    echo "Error: $LAYOUT_FILE is not valid JSON"
+# Validate the cfgutil structure before touching an app or connected device.
+# Pass the filename as an argument, never interpolate it into Python source.
+if ! python3 - "$LAYOUT_FILE" <<'PYVALIDATE'
+import json
+import sys
+
+
+def icon(value):
+    return isinstance(value, str) and bool(value.strip())
+
+
+def folder(value):
+    if not isinstance(value, list) or len(value) < 2 or not icon(value[0]):
+        return False
+    contents = value[1:]
+    return all(icon(x) for x in contents) or all(
+        isinstance(page, list) and bool(page) and all(icon(x) for x in page)
+        for page in contents
+    )
+
+
+try:
+    with open(sys.argv[1], encoding='utf-8') as source:
+        layout = json.load(source)
+    if not isinstance(layout, list) or len(layout) < 2:
+        raise ValueError('expected Dock and at least one page; inspection reports are not layouts')
+    for pi, page in enumerate(layout):
+        if not isinstance(page, list):
+            raise ValueError(f'page {pi} must be an array')
+        if pi == 0 and len(page) > 4:
+            raise ValueError('Dock contains more than four items')
+        for ii, item in enumerate(page):
+            if not (icon(item) or folder(item)):
+                raise ValueError(f'page {pi}, item {ii}: invalid icon or folder')
+except (OSError, ValueError) as exc:
+    print(f'Error: invalid cfgutil layout: {exc}', file=sys.stderr)
+    sys.exit(1)
+PYVALIDATE
+then
     exit 1
 fi
 
